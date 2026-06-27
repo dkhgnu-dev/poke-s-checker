@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ポケチャン最速判定S - データ修正版</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; color: #333; }
+        .container { max-width: 650px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #e91e63; font-size: 24px; margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .card { border: 2px solid #e0e0e0; padding: 15px; border-radius: 8px; background: #fafafa; position: relative; }
+        .card.active-a { border-color: #2196F3; }
+        .card.active-b { border-color: #4CAF50; }
+        label { display: block; margin-top: 10px; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 8px; font-size: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .suggest-box { position: absolute; background: white; border: 1px solid #ccc; width: calc(100% - 30px); max-height: 150px; overflow-y: auto; z-index: 10; border-radius: 4px; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .suggest-item { padding: 8px; cursor: pointer; font-size: 14px; }
+        .suggest-item:hover { background: #eee; }
+        .checkbox-group { margin-top: 12px; border-top: 1px dashed #ccc; padding-top: 8px; }
+        .checkbox-group label { font-weight: normal; font-size: 14px; display: flex; align-items: center; gap: 5px; cursor: pointer; margin-top: 5px; }
+        .adjust-group { background: #eef2f7; padding: 8px; border-radius: 6px; margin-top: 8px; }
+        #result { margin-top: 20px; padding: 15px; border-radius: 6px; text-align: center; font-size: 18px; font-weight: bold; display: none; line-height: 1.5; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>ポケチャン最速判定S</h1>
+    
+    <div class="grid">
+        <!-- ポケモンA -->
+        <div class="card active-a">
+            <h3 style="margin:0; color:#2196F3;">ポケモンA (自分)</h3>
+            
+            <label>ポケモン検索（文字入力OK）</label>
+            <input type="text" id="search_a" placeholder="例: メガライチュウX" oninput="showSuggest('a')">
+            <div id="suggest_a" class="suggest-box"></div>
+
+            <label>S種族値（直接修正もOK）</label>
+            <input type="number" id="s_race_a" value="100" oninput="updateAll('a')">
+
+            <div class="adjust-group">
+                <label style="margin-top:0;">💪 努力値・性格調整</label>
+                <select id="ev_style_a" onchange="updateAll('a')">
+                    <option value="0" selected>無振り (0)</option>
+                    <option value="32">調整振り (32)</option>
+                </select>
+                <label style="font-weight:normal; font-size:14px; margin-top:5px;">
+                    <input type="checkbox" id="nature_a" onchange="updateAll('a')" checked> 性格補正あり (1.1倍)
+                </label>
+            </div>
+
+            <div class="checkbox-group">
+                <label><input type="checkbox" id="scarf_a" onchange="updateAll('a')"> こだわりスカーフ (1.5倍)</label>
+                <label><input type="checkbox" id="tailwind_a" onchange="updateAll('a')"> おいかぜ (2倍)</label>
+                <label><input type="checkbox" id="paralysis_a" onchange="updateAll('a')"> マヒ (0.5倍)</label>
+            </div>
+            
+            <label>Sランク補正</label>
+            <select id="rank_a" onchange="updateAll('a')">
+                <option value="0" selected>±0 (1.0倍)</option>
+                <option value="1">+1段階 (1.5倍)</option>
+                <option value="2">+2段階 (2.0倍)</option>
+                <option value="-1">-1段階 (0.66倍)</option>
+                <option value="-2">-2段階 (0.5倍)</option>
+            </select>
+
+            <label style="color:#555; margin-top:15px;">📊 すべての補正込みS実数値</label>
+            <div id="real_s_display_a" style="font-size:24px; font-weight:bold; color:#2196F3; padding:5px 0;">126</div>
+        </div>
+
+        <!-- ポケモンB -->
+        <div class="card active-b">
+            <h3 style="margin:0; color:#4CAF50;">ポケモンB (相手)</h3>
+            
+            <label>ポケモン検索（文字入力OK）</label>
+            <input type="text" id="search_b" placeholder="例: メガライチュウY" oninput="showSuggest('b')">
+            <div id="suggest_b" class="suggest-box"></div>
+
+            <label>S種族値（直接修正もOK）</label>
+            <input type="number" id="s_race_b" value="100" oninput="updateAll('b')">
+
+            <div class="adjust-group">
+                <label style="margin-top:0;">💪 努力値・性格調整</label>
+                <select id="ev_style_b" onchange="updateAll('b')">
+                    <option value="0" selected>無振り (0)</option>
+                    <option value="32">調整振り (32)</option>
+                </select>
+                <label style="font-weight:normal; font-size:14px; margin-top:5px;">
+                    <input type="checkbox" id="nature_b" onchange="updateAll('b')" checked> 性格補正あり (1.1倍)
+                </label>
+            </div>
+
+            <div class="checkbox-group">
+                <label><input type="checkbox" id="scarf_b" onchange="updateAll('b')"> こだわりスカーフ (1.5倍)</label>
+                <label><input type="checkbox" id="tailwind_b" onchange="updateAll('b')"> おいかぜ (2倍)</label>
+                <label><input type="checkbox" id="paralysis_b" onchange="updateAll('b')"> マヒ (0.5倍)</label>
+            </div>
+            
+            <label>Sランク補正</label>
+            <select id="rank_b" onchange="updateAll('b')">
+                <option value="0" selected>±0 (1.0倍)</option>
+                <option value="1">+1段階 (1.5倍)</option>
+                <option value="2">+2段階 (2.0倍)</option>
+                <option value="-1">-1段階 (0.66倍)</option>
+                <option value="-2">-2段階 (0.5倍)</option>
+            </select>
+
+            <label style="color:#555; margin-top:15px;">📊 すべての補正込みS実数値</label>
+            <div id="real_s_display_b" style="font-size:24px; font-weight:bold; color:#4CAF50; padding:5px 0;">126</div>
+        </div>
+    </div>
+
+    <div id="result"></div>
+</div>
+
+<script>
+// データベース完全修正版（メガライチュウX・YのS種族値を正確に上書き）
+const pokeDatabase = {
+    "フシギバナ":80, "メガフシギバナ":80, "リザードン":100, "メガリザードンX":100, "メガリザードンY":100, "カメックス":78, "メガカメックス":78,
+    "スピアー":75, "メガスピアー":145, "ピジョット":101, "メガピジョット":121, "アーボック":80, "ピカチュウ":90, "ライチュウ":110, "ライチュウ(アローラ)":110,
+    "メガライチュウX":110, "メガライチュウY":130, "ピクシー":60, "メガピクシー":60, "キュウコン":100, "キュウコン(アローラ)":109, "ラフレシア":50,
+    "ウインディ":95, "ウインディ(ヒスイ)":90, "フーディン":120, "メガフーディン":150, "カイリキー":55, "ウツボット":70, "メガウツボット":90,
+    "ヤドラン":30, "メガヤドラン":30, "ヤドラン(ガラル)":30, "ゲンガー":110, "メガゲンガー":130, "ガルーラ":90, "メガガルーラ":100,
+    "スターミー":115, "メガスターミー":135, "カイロス":85, "メガカイロス":105, "ケンタロス":110, "ケンタロス(パルデア単)":100, "ケンタロス(パルデア炎)":100, "ケンタロス(パルデア水)":100,
+    "ギャラドス":81, "メガギャラドス":81, "メタモン":48, "シャワーズ":65, "サンダース":130, "ブースター":65, "プテラ":130, "メガプテラ":150,
+    "カビゴン":30, "カイリュー":80, "メガカイリュー":90, "メガニウム":80, "メガメガニウム":80, "バクフーン":100, "バクフーン(ヒスイ)":95,
+    "オーダイル":78, "メガオーダイル":78, "アリアドス":40, "デンリュウ":55, "メガデンリュウ":45, "マリルリ":50, "ニョロトノ":70,
+    "エーフィ":110, "ブラッキー":65, "ヤドキング":30, "ヤドキング(ガラル)":30, "フォレトス":40, "ハガネール":30, "メガハガネール":30,
+    "ハリーセン":85, "ハッサム":65, "メガハッサム":75, "ヘラクロス":85, "メガヘラクロス":75, "エアームド":70, "メガエアームド":90,
+    "ヘルガー":95, "メガヘルガー":115, "バンギラス":61, "メガバンギラス":71, "ジュカイン":120, "メガジュカイン":145, "バシャーモ":80,
+    "メガバシャーモ":100, "ラグラージ":60, "メガラグラージ":70, "ペリッパー":65, "サーナイト":80, "メガサーナイト":100, "ヤミラミ":50,
+    "メガヤミラミ":20, "クチート":50, "メガクチート":50, "ボスゴドラ":50, "メガボスゴドラ":50, "チャーレム":80, "メガチャーレム":100,
+    "ライボルト":105, "メガライボルト":135, "サメハダー":95, "メガサメハダー":105, "バクーダ":40, "メガバクーダ":20, "コータス":20,
+    "チルタリス":80, "メガチルタリス":80, "ミロカロス":81, "ポワルン":70, "ジュペッタ":65, "メガジュペッタ":75, "チリーン":65,
+    "メガチリーン":85, "アブソル":75, "メガアブソル":115, "オニゴーリ":80, "メガオニゴーリ":100, "メタグロス":70, "メガメタグロス":110,
+    "ドダイトス":56, "ゴウカザル":108, "エンペルト":60, "ムクホーク":100, "メガムクホーク":120, "レントラー":70, "ロズレイド":90,
+    "ラムパルド":58, "トリデプス":30, "ミミロップ":105, "メガミミロップ":135, "ミカルゲ":35, "ガブリアス":102, "メガガブリアス":92,
+    "ルカリオ":90, "メガルカリオ":112, "カバルドン":47, "ドクロッグ":85, "ユキノオー":60, "メガユキノオー":30, "マニューラ":125,
+    "ドサイドン":40, "リーフィア":95, "グレイシア":65, "グライオン":95, "マンムー":80, "エルレイド":80, "メガエルレイド":110,
+    "ユキメノコ":110, "メガユキメノコ":130, "ロトム":91, "ヒートロトム":86, "ウォッシュロトム":86, "フロストロトム":86, "スピンロトム":86,
+    "カットロトム":86, "ジャローダ":113, "エンブオー":65, "メガエンブオー":65, "ダイケンキ":70, "ダイケンキ(ヒスイ)":85, "ミルホッグ":77,
+    "レパルダス":106, "ヤナッキー":101, "バオッキー":101, "ヒヤッキー":101, "ムシャーナ":29, "ドリュウズ":88, "メガドリュウズ":108,
+    "タブンネ":50, "メガタブンネ":50, "ローブシン":45, "ペンドラー":112, "メガペンドラー":132, "エルフーン":116, "ワルビアル":92,
+    "ズルズキン":58, "メガズルズキン":58, "デスカーン":30, "ダストダス":75, "ゾロアーク":105, "ゾロアーク(ヒスイ)":110, "ランクルス":30,
+    "バイバニラ":79, "エモンガ":103, "シビルドン":50, "メガシビルドン":50, "シャンデラ":80, "メガシャンデラ":80, "ツンベアー":50,
+    "マッギョ":32, "マッギョ(ガラル)":32, "ゴルーグ":55, "メガゴルーグ":55, "サザンドラ":98, "ウルガモス":100, "ブリガロン":64,
+    "メガブリガロン":64, "マフォクシー":104, "メガマフォクシー":124, "ゲッコウガ":122, "メガゲッコウガ":142, "ホルード":78, "ファイアロー":126,
+    "ビビヨン":89, "カエンジシ":106, "メガカエンジシ":126, "フラエッテ(えいえん)":92, "メガフラエッテ":112, "フラージェス":75, "ゴロンダ":58,
+    "トリミアン":102, "ニャオニクス♂":104, "ニャオニクス♀":104, "メガニャオニクス♂":114, "メガニャオニクス♀":114, "ギルガルド(シールド)":60, "ギルガルド(ブレード)":60,
+    "フレフワン":29, "ペロリーム":72, "カラマネロ":73, "メガカラマネロ":93, "ガメノデス":68, "メガガメノデス":88, "ドラミドロ":44,
+    "メガドラミドロ":44, "ブロスター":59, "エレザード":109, "ガチゴラス":71, "アマルルガ":58, "ニンフィア":60, "ルチャブル":118,
+    "メガルチャブル":138, "デデンネ":101, "ヌメルゴン":80, "ヌメルゴン(ヒスイ)":60, "クレッフィ":75, "オーロット":56, "パンプジン(普通)":56,
+    "パンプジン(小)":99, "パンプジン(大)":46, "パンプジン(特大)":38, "クレベース":28, "クレベース(ヒスイ)":38, "オンバーン":123,
+    "ジュナイパー":70, "ジュナイパー(ヒスイ)":60, "ガオガエン":60, "アシレーヌ":60, "ドデカバシ":60, "ケケンカニ":43, "メガケケンカニ":43,
+    "ルガルガン(まひる)":112, "ルガルガン(まよなか)":82, "ルガルガン(たそがれ)":110, "ドヒドイデ":35, "バンバドロ":35, "オニシズクモ":42,
+    "エンニュート":117, "アマージョ":72, "ヤレユータン":60, "ナゲツケサル":80, "ミミッキュ":96, "ジジーロン":36, "メガジジーロン":36,
+    "ジャラランガ":85, "アーマーガア":67, "アップリュー":70, "タルップル":30, "サダイジャ":71, "ポットデス":70, "ブリムオン":29,
+    "オーロンゲ":60, "バリコオル":70, "デスバーン":30, "マホイップ":64, "タイレーツ":75, "メガタイレーツ":95, "モルペコ":97,
+    "ドラパルト":142, "アヤシシ":65, "バサギリ":85, "イダイトウ♂":78, "イダイトウ♀":78, "オオニューラ":120, "ハリーマン":85,
+    "マスカーニャ":123, "ラウドボーン":66, "ウェーニバル":85, "イッカネズミ":111, "キョジオーン":35, "グレンアルマ":75, "ソウブレイズ":85,
+    "ハラバリー":45, "スコヴィラン":75, "メガスコヴィラン":95, "クエスパトラ":105, "デカヌチャン":94, "イルカマン(ナイーブ)":100, "イルカマン(マイティ)":100,
+    "ミミズズ":65, "キラフロル":86, "メガキラフロル":106, "ハカドッグ":68, "コノヨザル":90, "リキキリン":60, "ドドゲザン":50,
+    "サーフゴー":84, "ヤバソチャ":70, "ブリジュラス":85, "カミツオロチ":40
+};
+
+function showSuggest(prefix) {
+    let input = document.getElementById('search_' + prefix).value.trim();
+    let suggestBox = document.getElementById('suggest_' + prefix);
+    suggestBox.innerHTML = '';
+    
+    if (!input) { suggestBox.style.display = 'none'; return; }
+    
+    let count = 0;
+    for (let name in pokeDatabase) {
+        if (name.includes(input)) {
+            let item = document.createElement('div');
+            item.className = 'suggest-item';
+            item.textContent = `${name} (S:${pokeDatabase[name]})`;
+            item.onclick = function() {
+                document.getElementById('search_' + prefix).value = name;
+                document.getElementById('s_race_' + prefix).value = pokeDatabase[name];
+                suggestBox.style.display = 'none';
+                updateAll(prefix);
+            };
+            suggestBox.appendChild(item);
+            count++;
+            if (count >= 5) break;
+        }
+    }
+    suggestBox.style.display = count > 0 ? 'block' : 'none';
+}
+
+function calculateFinalS(prefix) {
+    let race = parseFloat(document.getElementById('s_race_' + prefix).value) || 0;
+    let ev = parseInt(document.getElementById('ev_style_' + prefix).value);
+    let hasNature = document.getElementById('nature_' + prefix).checked;
+    
+    let s = Math.floor((race * 2 + 31 + Math.floor(ev / 4)) * 50 / 100) + 5;
+    if (hasNature) s = Math.floor(s * 1.1);
+    
+    let rank = parseInt(document.getElementById('rank_' + prefix).value);
+    if (rank > 0) s = Math.floor(s * (2 + rank) / 2);
+    else if (rank < 0) s = Math.floor(s * 2 / (2 - rank));
+    
+    if (document.getElementById('scarf_' + prefix).checked) s = Math.floor(s * 1.5);
+    if (document.getElementById('tailwind_' + prefix).checked) s = Math.floor(s * 2);
+    if (document.getElementById('paralysis_' + prefix).checked) s = Math.floor(s * 0.5);
+    
+    document.getElementById('real_s_display_' + prefix).textContent = s;
+    return s;
+}
+
+function compareSpeed() {
+    let finalA = calculateFinalS('a');
+    let finalB = calculateFinalS('b');
+    
+    let nameA = document.getElementById('search_a').value || 'ポケモンA';
+    let nameB = document.getElementById('search_b').value || 'ポケモンB';
+    
+    let resultDiv = document.getElementById('result');
+    resultDiv.style.display = 'block';
+    
+    if (finalA > finalB) {
+        resultDiv.style.background = '#e3f2fd';
+        resultDiv.style.color = '#0d47a1';
+        resultDiv.innerHTML = `🎉 <strong>${nameA}</strong> が先制！<br><small>A: <strong>${finalA}</strong> ＞ B: <strong>${finalB}</strong></small>`;
+    } else if (finalB > finalA) {
+        resultDiv.style.background = '#e8f5e9';
+        resultDiv.style.color = '#1b5e20';
+        resultDiv.innerHTML = `🎉 <strong>${nameB}</strong> が先制！<br><small>A: <strong>${finalA}</strong> ＜ B: <strong>${finalB}</strong></small>`;
+    } else {
+        resultDiv.style.background = '#fff3e0';
+        resultDiv.style.color = '#e65100';
+        resultDiv.innerHTML = `⚠️ 同速判定！<br><small>両者 最終S: <strong>${finalA}</strong></small>`;
+    }
+}
+
+function updateAll(prefix) {
+    calculateFinalS(prefix);
+    compareSpeed();
+}
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.card')) {
+        document.getElementById('suggest_a').style.display = 'none';
+        document.getElementById('suggest_b').style.display = 'none';
+    }
+});
+
+window.onload = function() {
+    updateAll('a');
+    updateAll('b');
+}
+</script>
+
+</body>
+</html>
